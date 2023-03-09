@@ -692,6 +692,7 @@ do
     -- instead
     local services_init_cache = {}
     if not kong.core_cache and db.strategy ~= "off" then
+      -- 从 db 中拉取 service 的信息，放到 service_init_cache 缓存中，key 是 service_id
       services_init_cache, err = build_services_init_cache(db)
       if err then
         services_init_cache = {}
