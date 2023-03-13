@@ -827,7 +827,6 @@ local function categorize_route_t(route_t, bit_category, categories)
       all                    = {},
     }
 
-    -- key 是位图的值
     categories[bit_category] = category
   end
 
@@ -1190,6 +1189,8 @@ end
 
 do
   local reducers = {
+    -- 数字当 key 的时候，需要加上中括号
+    -- 
     [MATCH_RULES.HOST] = function(category, ctx)
       return category.routes_by_hosts[ctx.hits.host or ctx.req_host]
     end,
@@ -1243,8 +1244,10 @@ do
     local header_rule = 0
 
     for _, bit_match_rule in ipairs(SORTED_MATCH_RULES) do
+      -- 与操作
       if band(bit_category, bit_match_rule) ~= 0 then
         reducers_count = reducers_count + 1
+        -- reducers_set 放的是 function
         reducers_set[reducers_count] = reducers[bit_match_rule]
         if bit_match_rule == MATCH_RULES.HEADER then
           header_rule = reducers_count
@@ -1252,6 +1255,7 @@ do
       end
     end
 
+    -- 检查每一小项（位图的某一位），是否匹配。（同类，不一定匹配）
     return function(category, ctx)
       local min_len = 0
       local smallest_set
@@ -1277,6 +1281,7 @@ do
   reduce = function(category, bit_category, ctx)
     if type(reducers[bit_category]) ~= "function" then
       -- build and cache reducer
+      -- 返回该 bit_category 的匹配方法
       reducers[bit_category] = build_cached_reducer(bit_category)
     end
 
@@ -1426,7 +1431,6 @@ function _M.new(routes)
     })
   end
 
-  
   sort(categories_weight_sorted, sort_categories)
 
   for i, c in ipairs(categories_weight_sorted) do
@@ -1450,10 +1454,12 @@ function _M.new(routes)
 
   local grab_req_headers = #plain_indexes.headers > 0
 
+  -- 路由匹配
   local function find_route(req_method, req_uri, req_host, req_scheme,
                             src_ip, src_port,
                             dst_ip, dst_port,
                             sni, req_headers)
+    -- 参数校验
     if req_method and type(req_method) ~= "string" then
       error("method must be a string", 2)
     end
@@ -1527,9 +1533,12 @@ function _M.new(routes)
     -- router, router, which of these routes is the fairest?
     --
     -- determine which category this request *might* be targeting
+    -- 判断该请求应该使用哪个 category
+
+    -- 先拿到请求的 req_category，既请求的位图。
 
     -- header match
-
+    -- 遍历的是规则，而不是请求，如果没有这个规则，就算请求有，也不会设置该位图字段
     for _, header_name in ipairs(plain_indexes.headers) do
       if req_headers[header_name] then
         req_category = bor(req_category, MATCH_RULES.HEADER)
@@ -1665,10 +1674,13 @@ function _M.new(routes)
       local matched_route
 
       while category_idx <= categories_len do
+        -- todo tre 为什么不直接用一个 category_bit 的 map ，因为需要 categories_weight_sorted 这个中间的有序的结构
         local bit_category = categories_weight_sorted[category_idx].category_bit
         local category     = categories[bit_category]
 
         if category then
+          -- reduced_candidates 是强匹配的 router 列表，不包含有通配的 path 等
+          -- category_candidates 是满足 match_rules 的全量的
           local reduced_candidates, category_candidates = reduce(category,
                                                                  bit_category,
                                                                  ctx)
