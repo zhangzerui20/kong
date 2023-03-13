@@ -334,6 +334,8 @@ local function marshall_route(r)
   local destinations = route.destinations
 
   local protocol
+  -- 取 service 的 protocol，service 的 protocol 不填默认是 http
+  -- route 的 protocol 不填默认是 http, https
   if service then
     protocol = service.protocol
   end
@@ -344,6 +346,7 @@ local function marshall_route(r)
     return nil, "could not categorize route"
   end
 
+  -- marshall_route 返回的结果
   local route_t    = {
     type           = protocol_subsystem[protocol],
     route          = route,
@@ -373,10 +376,14 @@ local function marshall_route(r)
       return nil, "hosts field must be a table"
     end
 
+    -- 带通配的 host
     local has_host_wildcard
+    -- 明文 host
     local has_host_plain
+    -- 带 port 的 host
     local has_port
 
+    -- 遍历 host 数组
     for _, host in ipairs(hosts) do
       if type(host) ~= "string" then
         return nil, "hosts values must be strings"
@@ -679,6 +686,7 @@ local function index_route_t(route_t, plain_indexes, prefix_uris, regex_uris,
     end
   end
 
+  -- 注意 header 的处理和 host 不同，除了加入 map ，还需要加入数组
   for _, header_t in ipairs(route_t.headers) do
     if not plain_indexes.headers[header_t.name] then
       plain_indexes.headers[header_t.name] = true
@@ -734,6 +742,7 @@ local function index_route_t(route_t, plain_indexes, prefix_uris, regex_uris,
 end
 
 
+-- todo tre 为什么没用 match_weight
 local function sort_routes(r1, r2)
   if r1.submatch_weight ~= r2.submatch_weight then
     return r1.submatch_weight > r2.submatch_weight
@@ -818,6 +827,7 @@ local function categorize_route_t(route_t, bit_category, categories)
       all                    = {},
     }
 
+    -- key 是位图的值
     categories[bit_category] = category
   end
 
@@ -873,6 +883,7 @@ local function categorize_route_t(route_t, bit_category, categories)
     end
   end
 
+  -- todo tre 这里 ip - port 是分开的
   for _, dst_t in ipairs(route_t.destinations) do
     if dst_t.ip then
       if not category.routes_by_destinations[dst_t.ip] then
@@ -1342,6 +1353,7 @@ function _M.new(routes)
   do
     local marshalled_routes = {}
 
+    -- 处理每个 route ，拿到处理后的 route 对象列表放到 marshalled_routes 中。
     for i = 1, #routes do
 
       local route = utils.deep_copy(routes[i], false)
@@ -1353,6 +1365,7 @@ function _M.new(routes)
           local err
 
           route.route.paths = { paths[j] }
+          -- 如果有 path ，则每一个 path ，构造一个  marshalled_routes 对象
           marshalled_routes[index], err = marshall_route(route)
           if not marshalled_routes[index] then
             return nil, err
@@ -1373,6 +1386,8 @@ function _M.new(routes)
         routes_by_id[routes[i].route.id] = routes[i]
       end
     end
+
+    -- todo tre 没有 matching category 的一些字段，才需要排序吗
 
     -- sort wildcard hosts and uri regexes since those rules
     -- don't have their own matching category
@@ -1411,6 +1426,7 @@ function _M.new(routes)
     })
   end
 
+  
   sort(categories_weight_sorted, sort_categories)
 
   for i, c in ipairs(categories_weight_sorted) do
