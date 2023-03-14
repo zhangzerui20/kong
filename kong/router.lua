@@ -1243,8 +1243,9 @@ do
     local reducers_set = {}
     local header_rule = 0
 
+    -- 对传入的 big_category ，产生一个 function 的列表
     for _, bit_match_rule in ipairs(SORTED_MATCH_RULES) do
-      -- 与操作
+      -- band: 与操作
       if band(bit_category, bit_match_rule) ~= 0 then
         reducers_count = reducers_count + 1
         -- reducers_set 放的是 function
@@ -1260,7 +1261,9 @@ do
       local min_len = 0
       local smallest_set
 
+      -- 遍历每一个规则类型的匹配方法
       for i = 1, reducers_count do
+        -- 对于某一个
         local candidates = reducers_set[i](category, ctx)
         if candidates ~= nil then
           if i == header_rule then
