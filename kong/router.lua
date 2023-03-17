@@ -794,21 +794,73 @@ local function sort_uris(p1, p2)
 end
 
 
-local function sort_sources(r1, _)
+local function sort_sources(r1, r2)
+
+  if r1 == r2 then
+    return false
+  end
+
+  local r1_ip_port
+  local r2_ip_port
+
   for _, source in ipairs(r1.sources) do
     if source.ip and source.port then
-      return true
+      r1_ip_port = true
     end
   end
+
+  for _, source in ipairs(r2.sources) do
+    if source.ip and source.port then
+      r2_ip_port = true
+    end
+  end
+
+  if r1_ip_port and not r2_ip_port then
+    return true
+  elseif not r1_ip_port and r2_ip_port then
+    return false
+  end
+
+  if r1.route.created_at ~= nil and r2.route.created_at ~= nil then
+    return r1.route.created_at < r2.route.created_at
+  end
+
 end
 
 
-local function sort_destinations(r1, _)
+local function sort_destinations(r1, r2)
+
+  if r1 == r2 then
+    return false
+  end
+
+  local r1_ip_port
+  local r2_ip_port
+
   for _, destination in ipairs(r1.destinations) do
     if destination.ip and destination.port then
-      return true
+      r1_ip_port = true
+      break
     end
   end
+
+  for _, destination in ipairs(r2.destinations) do
+    if destination.ip and destination.port then
+      r2_ip_port = true
+      break
+    end
+  end
+
+  if r1_ip_port and not r2_ip_port then
+    return true
+  elseif not r1_ip_port and r2_ip_port then
+    return false
+  end
+
+  if r1.route.created_at ~= nil and r2.route.created_at ~= nil then
+    return r1.route.created_at < r2.route.created_at
+  end
+
 end
 
 
